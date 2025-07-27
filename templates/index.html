@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Общий Синий Чат</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Comfortaa&display=swap');
+
+  * { box-sizing: border-box; }
+  body, html {
+    margin: 0; padding: 0; height: 100%;
+    font-family: 'Comfortaa', cursive, sans-serif;
+    background: #e6f0ff;
+    display: flex; justify-content: center; align-items: center;
+  }
+  .chat-container {
+    width: 380px; height: 600px;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow:
+      0 8px 20px rgba(100, 130, 220, 0.3),
+      inset 0 0 50px #c7d7ff;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .chat-header {
+    background: #3a66cc;
+    color: white;
+    text-align: center;
+    font-size: 1.6em;
+    font-weight: 700;
+    padding: 20px;
+    user-select: none;
+    box-shadow: 0 4px 8px rgba(58, 102, 204, 0.7);
+  }
+  .messages {
+    flex-grow: 1;
+    padding: 15px 20px;
+    overflow-y: auto;
+    background:
+      radial-gradient(circle at top left, #f0f5ff 25%, transparent 26%),
+      radial-gradient(circle at top right, #f0f5ff 25%, transparent 26%);
+    background-size: 20px 20px;
+    background-repeat: repeat;
+  }
+  .message {
+    max-width: 70%;
+    margin-bottom: 14px;
+    padding: 12px 18px;
+    border-radius: 20px;
+    font-size: 1em;
+    line-height: 1.3;
+    box-shadow: 0 2px 8px rgba(58,102,204,0.15);
+    word-wrap: break-word;
+    color: #1a237e;
+  }
+  .message.from-me {
+    background: #a9c1ff;
+    align-self: flex-end;
+    border-bottom-right-radius: 6px;
+    color: #0d1446;
+    box-shadow: 0 3px 12px rgba(58,102,204,0.4);
+  }
+  .message.from-them {
+    background: #d6e3ff;
+    align-self: flex-start;
+    border-bottom-left-radius: 6px;
+  }
+  .input-area {
+    padding: 15px 20px;
+    background: #e9f0ff;
+    border-top: 1px solid #a5b8ff;
+    display: flex;
+    gap: 12px;
+  }
+  .input-area input[type="text"] {
+    flex-grow: 1;
+    border: none;
+    border-radius: 30px;
+    padding: 12px 20px;
+    font-size: 1em;
+    outline: none;
+    background: #dbe4ff;
+    box-shadow: inset 0 0 8px #a9c1ff;
+    transition: background-color 0.3s;
+    color: #1a237e;
+  }
+  .input-area input[type="text"]::placeholder {
+    color: #6e7eaa;
+  }
+  .input-area input[type="text"]:focus {
+    background: #b8caff;
+  }
+  .input-area button {
+    background: #3a66cc;
+    border: none;
+    color: white;
+    font-weight: 700;
+    font-size: 1em;
+    padding: 0 24px;
+    border-radius: 30px;
+    cursor: pointer;
+    box-shadow: 0 5px 15px rgba(58,102,204,0.6);
+    transition: background-color 0.3s;
+  }
+  .input-area button:hover {
+    background: #2f54b5;
+  }
+  .messages::-webkit-scrollbar {
+    width: 8px;
+  }
+  .messages::-webkit-scrollbar-thumb {
+    background-color: #3a66cc;
+    border-radius: 4px;
+  }
+  .messages::-webkit-scrollbar-track {
+    background: transparent;
+  }
+</style>
+</head>
+<body>
+
+<div class="chat-container" role="main" aria-label="Общий чат">
+  <header class="chat-header" aria-live="polite" aria-atomic="true">Общий чат</header>
+  <section class="messages" aria-live="polite" aria-relevant="additions" tabindex="0"></section>
+  <form class="input-area" aria-label="Форма отправки сообщения">
+    <input type="text" aria-label="Введите сообщение" autocomplete="off" placeholder="Напишите сообщение..." required />
+    <button type="submit" aria-label="Отправить сообщение">Отправить</button>
+  </form>
+</div>
+
+<script>
+  const messagesEl = document.querySelector('.messages');
+  const form = document.querySelector('.input-area');
+  const input = form.querySelector('input[type="text"]');
+
+  async function loadMessages() {
+    const res = await fetch('/api/messages');
+    if (!res.ok) {
+      console.error('Ошибка загрузки сообщений');
+      return;
+    }
+    const msgs = await res.json();
+    renderMessages(msgs);
+  }
+
+  function renderMessages(msgs) {
+    messagesEl.innerHTML = '';
+    msgs.forEach(msg => {
+      const div = document.createElement('div');
+      div.classList.add('message');
+      div.classList.add(msg.fromMe ? 'from-me' : 'from-them');
+      div.textContent = msg.text;
+      messagesEl.appendChild(div);
+    });
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    const res = await fetch('/api/messages', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({text})
+    });
+    if (res.ok) {
+      input.value = '';
+      await loadMessages();
+    } else {
+      alert('Ошибка при отправке сообщения');
+    }
+  });
+
+  // Загрузка сообщений при старте и каждые 3 секунды (имитация обновления)
+  loadMessages();
+  setInterval(loadMessages, 3000);
+</script>
+
+</body>
+</html>
